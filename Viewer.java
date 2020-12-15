@@ -89,4 +89,8 @@ public class Viewer {
         System.out.println(selectedOption);
         return "";
     }
+
+    public JFrame getJframe() {
+        return frame;
+    }
 }

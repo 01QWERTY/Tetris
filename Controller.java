@@ -7,11 +7,13 @@
  */
 
 import java.awt.event.KeyListener;
-import java.awt.event.ActionListener;
 import java.awt.event.KeyEvent;
+import java.awt.event.ActionListener;
 import java.awt.event.ActionEvent;
+import java.awt.event.FocusListener;
+import java.awt.event.FocusEvent;
 
-public class Controller implements KeyListener, ActionListener {
+public class Controller implements KeyListener, ActionListener, FocusListener {
     private Model model;
 
     public Controller(Viewer viewer){
@@ -48,6 +50,11 @@ public class Controller implements KeyListener, ActionListener {
     }
 
     @Override
+    public void focusLost(FocusEvent e) {
+        model.doAction("setFocus");
+    }
+
+    @Override
     public void keyReleased(KeyEvent e) {
 
     }
@@ -57,5 +64,8 @@ public class Controller implements KeyListener, ActionListener {
     }
 
 
+    @Override
+    public void focusGained(FocusEvent e) {
 
+    }
 }

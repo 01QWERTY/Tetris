@@ -5,6 +5,7 @@
  * Tetris
  * This simple game is written in java with the MVC pattern.
  */
+
 import java.util.Random;
 
 public class Model {
@@ -21,7 +22,7 @@ public class Model {
         isGamePaused = false;
 
         positionOfBlocks = new int[][]{
-                { 0,1,1,1,1,0,0,0,0,0},
+                { 0,0,1,1,0,0,0,0,0,0},
                 { 0,1,1,1,1,0,0,0,0,0},
                 { 0,0,0,0,0,0,0,0,0,0},
                 { 0,0,0,0,0,0,0,0,0,0},
@@ -35,8 +36,6 @@ public class Model {
     }
 
     public void doAction(String command)  {
-//        System.out.println(command);
-
         boolean isPossibleToMove = true;
         switch (command){
 
@@ -82,7 +81,7 @@ public class Model {
                 if(!isGamePaused) {
                     loop: for (int c = 0; c < positionOfBlocks.length; c++) {
                         down();
-                        if (check())
+                        if (isBlockInTheBottom())
                             break loop;
                     }
                 }
@@ -106,24 +105,27 @@ public class Model {
                 break;
 
             case "startOver":
-                for(int i = 0; i < positionOfBlocks.length; i++)
-                    for(int j = 0; j < positionOfBlocks[i].length; j++)
-                        positionOfBlocks[i][j] = 0;
-
-                    isGameOver = false;
-                    nextBlock();
-                    viewer.getTimer().start();
-                    break;
+                startOver();
+                break;
 
             case "exit":
                 System.exit(0);
+            case "setFocus":
+                viewer.getJframe().setFocusable(true);
         }
 
         check();
         viewer.update();
-//        printArrayToConsole();
-        isGameOver();
+    }
 
+    private void startOver() {
+        for(int i = 0; i < positionOfBlocks.length; i++)
+            for(int j = 0; j < positionOfBlocks[i].length; j++)
+                positionOfBlocks[i][j] = 0;
+
+        isGameOver = false;
+        nextBlock();
+        viewer.getTimer().start();
     }
 
 
@@ -142,36 +144,25 @@ public class Model {
     }
 
 
+    private void check(){
 
-    private void printArrayToConsole(){
-        for(int[] arr : positionOfBlocks) {
-            for (int i : arr)
-                System.out.print(i + " ");
-            System.out.println();
-        }
-    }
-
-    private boolean check(){
-        boolean isBlockInTheBottom = false;
-        boolean isRequiredToStopLoop = false;
-
-        //check if a movable block reached the bottom or other stopped block
-       loop: for(int i = positionOfBlocks.length - 1; i >= 0; i--)
-            for (int j = 0; j < positionOfBlocks[i].length; j++)
-                if (positionOfBlocks[i][j] == 1 && (i == positionOfBlocks.length - 1 || positionOfBlocks[i + 1][j] == 5)) {
-                    isBlockInTheBottom = true;
-                    break loop;
-                }
-
-        // if block reached the bottom, make it immovable and show new block
-        if(isBlockInTheBottom) {
+        //if block reached the bottom, make it immovable and show new block
+        if(isBlockInTheBottom()) {
             for (int i = 0; i < positionOfBlocks.length; i++)
                 for (int j = 0; j < positionOfBlocks[i].length; j++)
                     if(positionOfBlocks[i][j] == 1)
                         positionOfBlocks[i][j] = 5;
 
-            nextBlock();
-            isRequiredToStopLoop = true;
+            if(!nextBlock()){
+                viewer.update();
+                viewer.getTimer().stop();
+
+                String nextCommand = viewer.showOptionPane();
+                if(nextCommand.equals("startOver"))
+                    startOver();
+                else if(nextCommand.equals("exit"))
+                    System.exit(0);
+            }
         }
 
                 //check if the line is full of tetris blocks, then clear this line and push down blocks, that are higher
@@ -189,7 +180,37 @@ public class Model {
                             positionOfBlocks[ii][j] = positionOfBlocks[ii-1][j];
                 }
         }
-        return isRequiredToStopLoop;
+
+
+        //check if the game is lost,
+        // then show the user a jOptionpane to choose next action: close game or restart.
+        if(isGameOver()){
+            viewer.getTimer().stop();
+
+            String nextCommand = viewer.showOptionPane();
+            if(nextCommand.equals("startOver"))
+                startOver();
+            else if(nextCommand.equals("exit"))
+                System.exit(0);
+        }
+    }
+
+
+    /**
+     * check if a movable block reached the bottom or other stopped block
+     *
+     * @return
+     */
+    private boolean isBlockInTheBottom(){
+        boolean isBlockInTheBottom = false;
+
+        loop: for(int i = positionOfBlocks.length - 1; i >= 0; i--)
+            for (int j = 0; j < positionOfBlocks[i].length; j++)
+                if (positionOfBlocks[i][j] == 1 && (i == positionOfBlocks.length - 1 || positionOfBlocks[i + 1][j] == 5)) {
+                    isBlockInTheBottom = true;
+                    break loop;
+                }
+        return isBlockInTheBottom;
     }
 
     /**
@@ -240,19 +261,22 @@ public class Model {
     /**
      * bring new tetris block to the game field
      */
-    private void nextBlock(){
+    private boolean nextBlock(){
         if(!isGameOver) {
             int[][] nextBlock = getRandomTetrisBlock();
             for (int i = 0; i < nextBlock.length; i++)
                 for (int j = 0; j < nextBlock[i].length; j++)
-                    positionOfBlocks[i][j] = nextBlock[i][j];
+                    if(positionOfBlocks[i][j] == 0)
+                        positionOfBlocks[i][j] = nextBlock[i][j];
+                    else 
+                        return false;
         }
+        return true;
     }
 
     /**
-     * check if the game is lost,
-     * then show the user a jOptionpane to choose next action: close game or restart.
      *
+     * check if the game is lost,
      * @return true if the game is lost else false
      */
     private boolean isGameOver(){
@@ -263,11 +287,6 @@ public class Model {
                 break;
             }
 
-        if(isGameOver){
-            viewer.getTimer().stop();
-            String nextCommand = viewer.showOptionPane();
-            doAction(nextCommand);
-        }
         return isGameOver;
     }
 
